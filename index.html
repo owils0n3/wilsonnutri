@@ -2,200 +2,284 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NutriCalc BR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NutriCalc BR - Calculadora e Refeições</title>
+    <!-- Configurações PWA para iPhone/Android -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="NutriCalc BR">
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22NutriCalc%20BR%22%2C%22short_name%22%3A%22NutriCalc%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%2316a34a%22%7D">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
-        .view { display: none; }
-        .view.active { display: block; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .card-glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
     </style>
 </head>
-<body class="pb-24">
+<body class="min-h-screen pb-24">
 
-    <!-- Header -->
-    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 p-4 sticky top-0 z-50">
+    <!-- Header / Nav Superior -->
+    <header class="sticky top-0 z-50 card-glass border-b border-slate-800 px-4 py-3 shadow-lg">
         <div class="max-w-md mx-auto flex justify-between items-center">
-            <h1 class="text-lg font-bold">NutriCalc <span class="text-green-500">BR</span></h1>
-            <span class="text-xs text-green-400 bg-green-950 px-2 py-1 rounded-full border border-green-800">Ativo</span>
+            <div class="flex items-center space-x-2">
+                <div class="bg-green-600 text-white p-2 rounded-xl shadow-md"><i class="fa-solid fa-utensils"></i></div>
+                <h1 class="text-lg font-bold tracking-tight text-white">NutriCalc <span class="text-green-500">BR</span></h1>
+            </div>
+            <div class="flex items-center space-x-1">
+                <!-- Backup Botões -->
+                <button onclick="exportData()" title="Salvar Backup" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs flex items-center gap-1 transition"><i class="fa-solid fa-download"></i></button>
+                <label title="Restaurar Backup" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs flex items-center gap-1 cursor-pointer transition">
+                    <i class="fa-solid fa-upload"></i>
+                    <input type="file" id="importFile" onchange="importData(event)" class="hidden" accept=".json">
+                </label>
+                <button onclick="openInfoModal()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition"><i class="fa-solid fa-circle-info"></i></button>
+            </div>
         </div>
     </header>
 
-    <!-- Conteúdo das Abas -->
+    <!-- Conteúdo Principal -->
     <main class="max-w-md mx-auto p-4 space-y-4">
 
-        <!-- ABA 1: PERFIL -->
-        <div id="view-perfil" class="view active space-y-4">
-            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 space-y-3">
-                <h2 class="font-bold text-sm text-green-400"><i class="fa-solid fa-user-gear mr-1"></i> Seus Dados</h2>
-                <div>
-                    <label class="text-xs text-slate-400">Peso (kg)</label>
-                    <input type="text" id="peso" value="75" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+        <!-- ABA 1: PERFIL & METAS -->
+        <section id="tab-perfil" class="tab-content active space-y-4">
+            <div class="card-glass rounded-2xl p-5 shadow-xl">
+                <h2 class="text-base font-bold text-white mb-3 flex items-center gap-2"><i class="fa-solid fa-user-gear text-green-500"></i> Seus Dados Biométricos</h2>
+                <div class="space-y-3 text-sm">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 text-xs mb-1 font-medium">Sexo</label>
+                            <select id="sexo" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
+                                <option value="masculino">Masculino</option>
+                                <option value="feminino">Feminino</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-xs mb-1 font-medium">Idade (anos)</label>
+                            <input type="number" id="idade" value="28" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 text-xs mb-1 font-medium">Peso atual (kg)</label>
+                            <input type="number" step="0.1" id="peso" value="75.0" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 text-xs mb-1 font-medium">Altura (cm)</label>
+                            <input type="number" id="altura" value="175" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-xs mb-1 font-medium">Nível de Atividade Física</label>
+                        <select id="atividade" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
+                            <option value="1.2">Sedentário (pouco ou nenhum exercício)</option>
+                            <option value="1.375">Levemente ativo (exercício leve 1-3 dias/sem)</option>
+                            <option value="1.55" selected>Moderadamente ativo (exercício 3-5 dias/sem)</option>
+                            <option value="1.725">Muito ativo (exercício 6-7 dias/sem)</option>
+                            <option value="1.9">Extremamente ativo (trabalho físico pesado)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-xs mb-1 font-medium">Objetivo</label>
+                        <select id="objetivo" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
+                            <option value="-500">Emagrecimento (-500 kcal)</option>
+                            <option value="0" selected>Manutenção do Peso</option>
+                            <option value="300">Hipertrofia Leve (+300 kcal)</option>
+                            <option value="500">Hipertrofia / Ganho de Massa (+500 kcal)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-xs mb-1 font-medium">Estratégia de Macronutrientes</label>
+                        <select id="estrategiaMacro" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
+                            <option value="peso">Por Peso (2.0g/kg Proteína | 1.0g/kg Gordura)</option>
+                            <option value="equilibrada" selected>Equilibrada (35% P / 45% C / 20% G)</option>
+                            <option value="lowcarb">Low Carb (40% P / 20% C / 40% G)</option>
+                            <option value="performance">Alta Performance (30% P / 55% C / 15% G)</option>
+                        </select>
+                    </div>
+                    <button onclick="calcularTudo()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl shadow-lg transition active:scale-95"><i class="fa-solid fa-calculator mr-2"></i> Calcular Metas</button>
                 </div>
-                <div>
-                    <label class="text-xs text-slate-400">Altura (cm)</label>
-                    <input type="text" id="altura" value="175" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400">Idade</label>
-                    <input type="text" id="idade" value="28" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
-                </div>
-                <button onclick="calcular()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl transition">Calcular Metas</button>
             </div>
 
-            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 space-y-2">
-                <h2 class="font-bold text-sm text-green-400">Resultados</h2>
-                <div class="flex justify-between text-sm"><span>TMB (Basal):</span> <strong id="resTMB">--</strong></div>
-                <div class="flex justify-between text-sm"><span>Gasto Total (GET):</span> <strong id="resGET">--</strong></div>
-            </div>
-        </div>
+            <!-- Resultados do Cálculo -->
+            <div id="resultadoCard" class="card-glass rounded-2xl p-5 shadow-xl space-y-4">
+                <h2 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-chart-pie text-green-500"></i> Suas Metas Diárias</h2>
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block">TMB (Basal)</span>
+                        <span id="resTMB" class="text-lg font-bold text-slate-200">-- kcal</span>
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block">Gasto Total (GET)</span>
+                        <span id="resGET" class="text-lg font-bold text-slate-200">-- kcal</span>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-700/40 p-4 rounded-xl text-center">
+                    <span class="text-xs text-green-400 font-semibold uppercase tracking-wider block mb-1">Meta Calórica Alvo</span>
+                    <span id="resMeta" class="text-3xl font-extrabold text-green-300">-- kcal</span>
+                </div>
+                <!-- Barras de Macros -->
+                <div class="space-y-2 pt-1">
+                    <div class="flex justify-between text-xs font-medium"><span class="text-blue-400"><i class="fa-solid fa-fish"></i> Proteínas</span><span id="resProt">-- g</span></div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div id="barProt" class="bg-blue-500 h-full w-0 transition-all duration-500"></div></div>
 
-        <!-- ABA 2: REFEIÇÕES -->
-        <div id="view-refeicoes" class="view space-y-4">
-            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 space-y-3">
-                <h2 class="font-bold text-sm text-green-400"><i class="fa-solid fa-utensils mr-1"></i> Adicionar Refeição</h2>
+                    <div class="flex justify-between text-xs font-medium pt-1"><span class="text-amber-400"><i class="fa-solid fa-wheat-awn"></i> Carboidratos</span><span id="resCarb">-- g</span></div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div id="barCarb" class="bg-amber-500 h-full w-0 transition-all duration-500"></div></div>
+
+                    <div class="flex justify-between text-xs font-medium pt-1"><span class="text-rose-400"><i class="fa-solid fa-droplet"></i> Gorduras</span><span id="resGord">-- g</span></div>
+                    <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden"><div id="barGord" class="bg-rose-500 h-full w-0 transition-all duration-500"></div></div>
+                </div>
+                <div class="text-xs text-slate-400 text-center pt-2 flex justify-around">
+                    <span>IMC: <strong id="resIMC" class="text-white">--</strong></span>
+                    <span>Água recomendada: <strong id="resAgua" class="text-white">-- L</strong></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 2: PLANEJADOR DE REFEIÇÕES -->
+        <section id="tab-refeicoes" class="tab-content space-y-4">
+            <div class="card-glass rounded-2xl p-4 shadow-xl flex items-center justify-between">
                 <div>
-                    <label class="text-xs text-slate-400">Nome do Alimento / Prato</label>
-                    <input type="text" id="alimentoNome" placeholder="Ex: Frango com arroz" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-sm">
+                    <span class="text-xs text-slate-400 block font-medium">Balanço de Hoje</span>
+                    <div class="text-lg font-bold text-white"><span id="totalConsumido" class="text-green-400">0</span> / <span id="metaCaloricaDiaria">2000</span> kcal</div>
                 </div>
-                <div>
-                    <label class="text-xs text-slate-400">Calorias (kcal)</label>
-                    <input type="text" id="alimentoCal" placeholder="Ex: 350" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-sm">
-                </div>
-                <button onclick="adicionarRefeicao()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl transition">Adicionar ao Dia</button>
+                <button onclick="abrirModalAddAlimento()" class="bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-xl text-xs font-bold shadow transition"><i class="fa-solid fa-plus mr-1"></i> Cadastrar Alimento</button>
             </div>
 
-            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 space-y-2">
-                <div class="flex justify-between items-center">
-                    <h2 class="font-bold text-sm text-green-400">Seus Registros</h2>
-                    <span class="text-xs font-bold text-white"><span id="totalKcal">0</span> kcal consumidas</span>
-                </div>
-                <div id="listaRefeicoes" class="space-y-2 pt-2">
-                    <p class="text-xs text-slate-500 italic">Nenhum registro hoje.</p>
-                </div>
+            <!-- Lista de Refeições -->
+            <div id="listaRefeicoes" class="space-y-3">
+                <!-- Preenchido via JS -->
             </div>
-        </div>
+        </section>
 
-        <!-- ABA 3: TABELA TACO -->
-        <div id="view-alimentos" class="view space-y-3">
-            <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/50 space-y-2">
-                <h2 class="font-bold text-sm text-green-400"><i class="fa-solid fa-carrot mr-1"></i> Tabela Brasileira (TACO)</h2>
-                <div class="space-y-2 text-xs pt-1">
-                    <div class="flex justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800"><span>Arroz cozido (100g)</span><strong>130 kcal</strong></div>
-                    <div class="flex justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800"><span>Feijão carioca (100g)</span><strong>76 kcal</strong></div>
-                    <div class="flex justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800"><span>Peito de frango (100g)</span><strong>159 kcal</strong></div>
-                    <div class="flex justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800"><span>Ovo cozido (1 un)</span><strong>73 kcal</strong></div>
-                    <div class="flex justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800"><span>Pão francês (1 un)</span><strong>135 kcal</strong></div>
-                    <div class="flex justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800"><span>Cuscuz (100g)</span><strong>112 kcal</strong></div>
-                    <div class="flex justify-between bg-slate-900/60 p-2.5 rounded-xl border border-slate-800"><span>Tapioca (100g)</span><strong>238 kcal</strong></div>
+        <!-- ABA 3: ALIMENTOS BR -->
+        <section id="tab-alimentos" class="tab-content space-y-4">
+            <div class="card-glass rounded-2xl p-4 shadow-xl space-y-3">
+                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fa-solid fa-book-open text-green-500"></i> Tabela de Alimentos Típicos (TACO / Brasil)</h2>
+                <input type="text" id="filtroAlimentos" oninput="filtrarTabelaAlimentos()" placeholder="Buscar alimento (ex: feijão, frango, cuscuz...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-green-500">
+                <div id="tabelaAlimentosLista" class="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+                    <!-- Preenchido via JS -->
                 </div>
             </div>
-        </div>
+        </section>
 
     </main>
 
-    <!-- Barra de Navegação Inferior -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/90 backdrop-blur border-t border-slate-800 py-3 px-6 z-50">
+    <!-- Navegação Inferior (TabBar) -->
+    <nav class="fixed bottom-0 left-0 right-0 card-glass border-t border-slate-800 z-40 py-2 px-6">
         <div class="max-w-md mx-auto flex justify-around">
-            <button onclick="mudarAba('perfil')" id="btn-perfil" class="flex flex-col items-center text-green-400 transition">
-                <i class="fa-solid fa-user text-base"></i>
-                <span class="text-[10px] mt-1">Perfil</span>
+            <button onclick="mudarAba('perfil')" id="nav-btn-perfil" class="flex flex-col items-center text-green-400 transition">
+                <i class="fa-solid fa-user text-lg"></i>
+                <span class="text-[10px] font-medium mt-1">Perfil</span>
             </button>
-            <button onclick="mudarAba('refeicoes')" id="btn-refeicoes" class="flex flex-col items-center text-slate-400 transition">
-                <i class="fa-solid fa-utensils text-base"></i>
-                <span class="text-[10px] mt-1">Refeições</span>
+            <button onclick="mudarAba('refeicoes')" id="nav-btn-refeicoes" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
+                <i class="fa-solid fa-utensils text-lg"></i>
+                <span class="text-[10px] font-medium mt-1">Refeições</span>
             </button>
-            <button onclick="mudarAba('alimentos')" id="btn-alimentos" class="flex flex-col items-center text-slate-400 transition">
-                <i class="fa-solid fa-carrot text-base"></i>
-                <span class="text-[10px] mt-1">Alimentos</span>
+            <button onclick="mudarAba('alimentos')" id="nav-btn-alimentos" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
+                <i class="fa-solid fa-carrot text-lg"></i>
+                <span class="text-[10px] font-medium mt-1">Alimentos</span>
             </button>
         </div>
     </nav>
 
-    <script>
-        // Função de troca de abas ultra-simples e blindada
-        function mudarAba(nomeAba) {
-            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
-            document.getElementById('view-' + nomeAba).classList.add('active');
+    <!-- Modal Adicionar Alimento na Refeição -->
+    <div id="modalAdd" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="card-glass rounded-2xl p-5 w-full max-w-sm space-y-4 border border-slate-700 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 id="modalTitulo" class="text-base font-bold text-white">Adicionar Alimento</h3>
+                <button onclick="fecharModalAdd()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-slate-400 text-xs mb-1">Selecione o Alimento</label>
+                    <select id="selectAlimentoModal" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs focus:outline-none focus:border-green-500"></select>
+                </div>
+                <div>
+                    <label class="block text-slate-400 text-xs mb-1">Quantidade (<span id="unidadeMedidaLabel">g</span>)</label>
+                    <input type="number" id="qtdAlimentoModal" value="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-sm focus:outline-none focus:border-green-500">
+                </div>
+                <button onclick="confirmarAddAlimento()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-2.5 rounded-xl text-xs transition">Adicionar à Refeição</button>
+            </div>
+        </div>
+    </div>
 
-            ['perfil', 'refeicoes', 'alimentos'].forEach(a => {
-                let btn = document.getElementById('btn-pesas' || 'btn-' + a);
-                let elBtn = document.getElementById('btn-' + a);
-                if(a === nomeAba) {
-                    elBtn.classList.remove('text-slate-400');
-                    elBtn.classList.add('text-green-400');
-                } else {
-                    elBtn.classList.add('text-slate-400');
-                    elBtn.classList.remove('text-green-400');
-                }
-            });
-            window.scrollTo({top: 0});
-        }
-
-        // Conversor seguro de vírgula para ponto
-        function num(val) {
-            return parseFloat(String(val || '0').replace(',', '.')) || 0;
-        }
-
-        function calcular() {
-            let p = num(document.getElementById('peso').value);
-            let a = num(document.getElementById('altura').value);
-            let i = num(document.getElementById('idade').value);
-
-            let tmb = (10 * p) + (6.25 * a) - (5 * i) + 5;
-            let get = Math.round(tmb * 1.55);
-
-            document.getElementById('resTMB').innerText = Math.round(tmb) + ' kcal';
-            document.getElementById('resGET').innerText = get + ' kcal';
-        }
-
-        let lista = JSON.parse(localStorage.getItem('nutri_regs')) || [];
-
-        function adicionarRefeicao() {
-            let nome = document.getElementById('alimentoNome').value.trim();
-            let cal = num(document.getElementById('alimentoCal').value);
-
-            if(!nome || cal <= 0) {
-                alert('Informe o nome e as calorias corretamente.');
-                return;
-            }
-
-            lista.push({nome, cal});
-            localStorage.setItem('nutri_regs', JSON.stringify(lista));
-            document.getElementById('alimentoNome').value = '';
-            document.getElementById('alimentoCal').value = '';
-            renderizarLista();
-        }
-
-        function renderizarLista() {
-            let container = document.getElementById('listaRefeicoes');
-            let total = 0;
-
-            if(lista.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-500 italic">Nenhum registro hoje.</p>';
-                document.getElementById('totalKcal').innerText = '0';
-                return;
-            }
-
-            container.innerHTML = '';
-            lista.forEach((item, idx) => {
-                total += item.cal;
-                container.innerHTML += `
-                    <div class="flex justify-between items-center bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 text-xs">
-                        <span>${item.nome} • <strong>${item.cal} kcal</strong></span>
-                        <button onclick="remover(${idx})" class="text-rose-400 px-2 py-1"><i class="fa-solid fa-trash"></i></button>
+    <!-- Modal Criar Alimento Personalizado -->
+    <div id="modalPersonalizado" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="card-glass rounded-2xl p-5 w-full max-w-sm space-y-4 border border-slate-700 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-white">Cadastrar Novo Alimento</h3>
+                <button onclick="fecharModalPersonalizado()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="space-y-3 text-sm">
+                <div>
+                    <label class="block text-slate-400 text-xs mb-1">Nome do Alimento</label>
+                    <input type="text" id="novoNome" placeholder="Ex: Tapioca recheada" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs focus:outline-none focus:border-green-500">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-400 text-xs mb-1">Porção base (g/ml)</label>
+                        <input type="number" id="novaPorcao" value="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
                     </div>
-                `;
-            });
-            document.getElementById('totalKcal').innerText = total;
-        }
+                    <div>
+                        <label class="block text-slate-400 text-xs mb-1">Calorias (kcal)</label>
+                        <input type="number" id="novaCal" value="150" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="block text-slate-400 text-xs mb-1">Prot (g)</label>
+                        <input type="number" step="0.1" id="novoProt" value="5" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-xs mb-1">Carb (g)</label>
+                        <input type="number" step="0.1" id="novoCarb" value="25" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 text-xs mb-1">Gord (g)</label>
+                        <input type="number" step="0.1" id="novoGord" value="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs">
+                    </div>
+                </div>
+                <button onclick="salvarAlimentoPersonalizado()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-2.5 rounded-xl text-xs transition">Salvar Alimento</button>
+            </div>
+        </div>
+    </div>
 
-        // Inicializar
-        window.onload = function() {
-            calcular();
-            renderizarLista();
-        }
-    </script>
-</body>
-</html>
+    <!-- Modal Instruções PWA -->
+    <div id="modalInfo" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="card-glass rounded-2xl p-5 w-full max-w-sm space-y-4 border border-slate-700 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-white flex items-center gap-2"><i class="fa-solid fa-mobile-screen text-green-500"></i> Atalho no Celular</h3>
+                <button onclick="fecharInfoModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="text-xs text-slate-300 space-y-2">
+                <p>Para usar este app direto na tela inicial do seu celular como um aplicativo nativo:</p>
+                <p><strong>No iPhone (Safari):</strong> Toque no botão <strong>Compartilhar</strong> (quadradinho com seta para cima) e escolha <strong>"Adicionar à Tela de Início"</strong>.</p>
+                <p><strong>No Android (Chrome):</strong> Toque nos <strong>3 pontinhos</strong> no canto superior direito e escolha <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar aplicativo"</strong>.</p>
+                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 text-[11px] text-slate-400">
+                    <i class="fa-solid fa-cloud-arrow-down text-green-400 mr-1"></i> Seus dados ficam salvos automaticamente no aparelho. Use os botões de backup no topo para exportar ou importar seus registros!
+                </div>
+            </div>
+            <button onclick="fecharInfoModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold p-2.5 rounded-xl text-xs transition">Entendido</button>
+        </div>
+    </div>
+
+    <script>
+        const alimentosBase = [
+            { id: "arroz", nome: "Arroz branco cozido", porcao: 100, cal: 130, prot: 2.5, carb: 28.1, gord: 0.2 },
+            { id: "feijao_carioca", nome: "Feijão carioca cozido", porcao: 100, cal: 76, prot: 4.8, carb: 13.6, gord: 0.5 },
+            { id: "feijao_preto", nome: "Feijão preto cozido", porcao: 100, cal: 77, prot: 4.5, carb: 14.0, gord: 0.5 },
+            { id: "frango_grelhado", nome: "Peito de frango grelhado", porcao: 100, cal: 159, prot: 32.0, carb: 0.0, gord: 2.5 },
+            { id: "patinho", nome: "Carne bovina patinho cozido/grelhado", porcao: 100, cal: 219, prot: 35.9, carb: 0.0, gord: 7.3 },
+            { id: "ovo_cozido", nome: "Ovo de galinha cozido (unidade)", porcao: 50, cal: 73, prot: 6.3, carb: 0.4, gord: 5.0 },
+            { id: "ovo_frito", nome: "Ovo de galinha frito (unidade)", porcao: 50, cal: 92, prot: 6.0, carb: 0.4, gord: 7.2 },
+            { id: "pao_frances", nome: "Pão francês (unidade)", porcao: 50, cal: 135, prot: 4.0, carb: 28.5, gord: 0.5 },
+            { id: "cuscuz", nome: "Cuscuz de milho cozido", porcao: 100, cal: 112, prot: 2.3, carb: 25.0, gord: 0.4 },
+            { id: "tapioca", nome: "Massa de tapioca preparada", porcao: 100, cal: 238, prot: 0.2, carb: 59.0, gord: 0.1 },
+            { id: "banana", nome: "Banana prate/nanica (unidade)", porcao: 70, cal: 63, prot: 0.9, carb: 16.0, gord: 0.1 },
+            { id: "aveia", nome: "Farelo/Flocos de aveia", porcao: 30, cal: 104, prot: 4.3, carb: 17.0, gord: 2.2 },
+            { id: "whey", nome: "Whey Protein (dosador)", porcao: 30, cal: 120, prot: 24.0, carb: 2.0, gord: 1.5 },
+            { id: "queijo_minas", nome: "Queijo minas frescal", porcao: 30, cal: 74, prot: 5.2, carb: 
