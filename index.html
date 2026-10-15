@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NutriCalc BR Pro - Calculadora e Diário Alimentar</title>
-    <!-- Configurações PWA para iPhone/Android -->
+    <title>NutriCalc BR Pro - Diário e Macros</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="NutriCalc BR">
-    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22NutriCalc%20BR%20Pro%22%2C%22short_name%22%3A%22NutriCalc%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%2316a34a%22%7D">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -16,287 +14,903 @@
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .card-glass { background: rgba(30, 41, 59, 0.78); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        .card-glass { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        input, select { font-size: 16px !important; }
     </style>
 </head>
 <body class="min-h-screen pb-28">
 
-    <!-- Header Superior -->
+    <!-- Header Fixo -->
     <header class="sticky top-0 z-40 card-glass border-b border-slate-800 px-4 py-3 shadow-lg">
         <div class="max-w-md mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-2.5">
-                <div class="bg-green-600 text-white w-9 h-9 rounded-xl shadow-md flex items-center justify-center">
-                    <i class="fa-solid fa-utensils"></i>
-                </div>
+            <div class="flex items-center space-x-2">
+                <div class="bg-green-600 text-white p-2 rounded-xl shadow-md"><i class="fa-solid fa-utensils"></i></div>
                 <div>
                     <h1 class="text-base font-extrabold tracking-tight text-white leading-none">NutriCalc <span class="text-green-500">BR</span></h1>
-                    <span class="text-[10px] text-slate-400 font-medium">Diário & Macronutrientes</span>
+                    <span class="text-[10px] text-slate-400">Diário Alimentar & Macros</span>
                 </div>
             </div>
             <div class="flex items-center space-x-1.5">
-                <button type="button" onclick="window.exportData()" title="Salvar Backup" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs transition active:scale-95">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-                <label title="Restaurar Backup" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs cursor-pointer transition active:scale-95">
+                <button onclick="exportData()" title="Salvar Backup" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"><i class="fa-solid fa-download"></i></button>
+                <label title="Restaurar Backup" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs cursor-pointer">
                     <i class="fa-solid fa-upload"></i>
-                    <input type="file" id="importFile" onchange="window.importData(event)" class="hidden" accept=".json">
+                    <input type="file" onchange="importData(event)" class="hidden" accept=".json">
                 </label>
-                <button type="button" onclick="window.openInfoModal()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs transition active:scale-95">
-                    <i class="fa-solid fa-circle-info"></i>
-                </button>
+                <button onclick="resetarDia()" title="Zerar Refeições do Dia" class="p-2 bg-slate-800 hover:bg-rose-900/60 text-rose-400 rounded-lg text-xs"><i class="fa-solid fa-rotate-left"></i></button>
             </div>
         </div>
     </header>
 
-    <!-- Conteúdo Principal -->
     <main class="max-w-md mx-auto p-4 space-y-4">
 
-        <!-- ==========================================
-             ABA 1: PERFIL & AJUSTE DE METAS
-             ========================================== -->
+        <!-- RESUMO RÁPIDO DO DIA (SEMPRE VISÍVEL NO TOPO) -->
+        <div class="card-glass rounded-2xl p-4 shadow-xl border border-slate-700/60 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-regular fa-calendar-check text-green-400 text-sm"></i>
+                    <input type="date" id="dataAtual" onchange="trocarData()" class="bg-transparent text-xs font-bold text-white focus:outline-none">
+                </div>
+                <span id="statusSaldo" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-950 text-green-400 border border-green-800">Restam -- kcal</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 text-center items-center">
+                <div class="bg-slate-900/70 p-2 rounded-xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Meta Diária</span>
+                    <span id="topoMetaCal" class="text-sm font-extrabold text-white">--</span>
+                    <span class="text-[9px] text-slate-500">kcal</span>
+                </div>
+                <div class="bg-green-950/40 p-2 rounded-xl border border-green-800/50">
+                    <span class="text-[10px] text-green-400 block font-semibold">Consumido</span>
+                    <span id="topoConsumidoCal" class="text-base font-extrabold text-green-300">0</span>
+                    <span class="text-[9px] text-green-500">kcal</span>
+                </div>
+                <div class="bg-slate-900/70 p-2 rounded-xl border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Água Hoje</span>
+                    <div class="flex items-center justify-center gap-1 mt-0.5">
+                        <button onclick="addAgua(-250)" class="text-slate-400 hover:text-white px-1 text-xs">-</button>
+                        <span id="topoAgua" class="text-xs font-bold text-sky-400">0.0L</span>
+                        <button onclick="addAgua(250)" class="text-sky-400 hover:text-sky-300 px-1 text-xs">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barras de Progresso Diário de Macros -->
+            <div class="grid grid-cols-3 gap-2 pt-1">
+                <div class="bg-slate-900/50 p-2 rounded-xl border border-slate-800/80">
+                    <div class="flex justify-between text-[10px] mb-1"><span class="text-blue-400 font-bold">Prot</span><span id="topoProtTxt" class="text-slate-300">0/0g</span></div>
+                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden"><div id="barDiaProt" class="bg-blue-500 h-full w-0 transition-all"></div></div>
+                </div>
+                <div class="bg-slate-900/50 p-2 rounded-xl border border-slate-800/80">
+                    <div class="flex justify-between text-[10px] mb-1"><span class="text-amber-400 font-bold">Carb</span><span id="topoCarbTxt" class="text-slate-300">0/0g</span></div>
+                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden"><div id="barDiaCarb" class="bg-amber-500 h-full w-0 transition-all"></div></div>
+                </div>
+                <div class="bg-slate-900/50 p-2 rounded-xl border border-slate-800/80">
+                    <div class="flex justify-between text-[10px] mb-1"><span class="text-rose-400 font-bold">Gord</span><span id="topoGordTxt" class="text-slate-300">0/0g</span></div>
+                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden"><div id="barDiaGord" class="bg-rose-500 h-full w-0 transition-all"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 1: PERFIL & PERSONALIZAÇÃO DE CALORIAS -->
         <section id="tab-perfil" class="tab-content active space-y-4">
-
-            <!-- Card Dados Biométricos -->
-            <div class="card-glass rounded-2xl p-5 shadow-xl space-y-3.5">
-                <h2 class="text-base font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-user-gear text-green-500"></i> Seus Dados Biométricos
-                </h2>
-
-                <div class="space-y-3 text-sm">
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-slate-400 text-xs mb-1 font-medium">Sexo</label>
-                            <select id="sexo" onchange="window.calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
-                                <option value="masculino">Masculino</option>
-                                <option value="feminino">Feminino</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 text-xs mb-1 font-medium">Idade (anos)</label>
-                            <input type="text" inputmode="numeric" id="idade" value="31" oninput="window.calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-slate-400 text-xs mb-1 font-medium">Peso atual (kg)</label>
-                            <input type="text" inputmode="decimal" id="peso" value="86,5" oninput="window.calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
-                        </div>
-                        <div>
-                            <label class="block text-slate-400 text-xs mb-1 font-medium">Altura (cm)</label>
-                            <input type="text" inputmode="numeric" id="altura" value="171" oninput="window.calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
-                        </div>
-                    </div>
-
+            <div class="card-glass rounded-2xl p-5 shadow-xl space-y-3">
+                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fa-solid fa-sliders text-green-500"></i> 1. Dados Biométricos</h2>
+                <div class="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                        <label class="block text-slate-400 text-xs mb-1 font-medium">Nível de Atividade Física</label>
-                        <select id="atividade" onchange="window.calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
-                            <option value="1.2">Sedentário (pouco ou nenhum exercício)</option>
-                            <option value="1.375">Levemente ativo (1 a 3 dias/semana)</option>
-                            <option value="1.55" selected>Moderadamente ativo (3 a 5 dias/semana)</option>
-                            <option value="1.725">Muito ativo (6 a 7 dias/semana)</option>
-                            <option value="1.9">Extremamente ativo (treino pesado/2x dia)</option>
+                        <label class="block text-slate-400 mb-1">Sexo</label>
+                        <select id="sexo" onchange="calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                            <option value="masculino">Masculino</option>
+                            <option value="feminino">Feminino</option>
                         </select>
                     </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Idade (anos)</label>
+                        <input type="text" inputmode="decimal" id="idade" value="31" oninput="calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Peso (kg)</label>
+                        <input type="text" inputmode="decimal" id="peso" value="86.5" oninput="calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Altura (cm)</label>
+                        <input type="text" inputmode="decimal" id="altura" value="173" oninput="calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                    </div>
+                </div>
+                <div class="text-xs">
+                    <label class="block text-slate-400 mb-1">Rotina de Atividade Física</label>
+                    <select id="atividade" onchange="calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                        <option value="1.2">Sedentário (sem treino regular)</option>
+                        <option value="1.375">Levemente ativo (1 a 3 treinos/sem)</option>
+                        <option value="1.55" selected>Moderadamente ativo (3 a 5 treinos/sem)</option>
+                        <option value="1.725">Muito ativo (6 a 7 treinos/sem)</option>
+                        <option value="1.9">Extremamente ativo (treino duplo / pesado)</option>
+                    </select>
                 </div>
             </div>
 
-            <!-- Card Personalização de Calorias e Macros -->
-            <div class="card-glass rounded-2xl p-5 shadow-xl space-y-3.5">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-base font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-green-500"></i> Ajuste de Calorias & Macros
-                    </h2>
-                    <span class="text-[11px] bg-green-950 text-green-400 border border-green-800 px-2 py-0.5 rounded-full font-semibold">Personalizável</span>
-                </div>
-
-                <!-- Seletor Modo Automático vs Manual -->
-                <div class="grid grid-cols-2 gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
-                    <button type="button" id="btnModoAuto" onclick="window.alterarModoMeta('auto')" class="py-2 rounded-lg bg-green-600 text-white transition">
-                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Automático
-                    </button>
-                    <button type="button" id="btnModoManual" onclick="window.alterarModoMeta('manual')" class="py-2 rounded-lg text-slate-400 hover:text-white transition">
-                        <i class="fa-solid fa-pen-to-square mr-1"></i> Meta Manual
-                    </button>
-                </div>
-
-                <!-- Painel Automático -->
-                <div id="painelMetaAuto" class="space-y-3 text-sm">
+            <!-- Personalização de Calorias e Macros -->
+            <div class="card-glass rounded-2xl p-5 shadow-xl space-y-3">
+                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fa-solid fa-fire-flame-curved text-green-500"></i> 2. Ajuste de Calorias e Macros</h2>
+                
+                <div class="text-xs space-y-3">
                     <div>
-                        <label class="block text-slate-400 text-xs mb-1 font-medium">Objetivo Principal</label>
-                        <select id="objetivo" onchange="window.selecionarObjetivoPreset()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
-                            <option value="-700">Emagrecimento Agressivo (-700 kcal)</option>
+                        <label class="block text-slate-400 mb-1">Objetivo Base (Sobre o Gasto Total)</label>
+                        <select id="objetivo" onchange="aoMudarObjetivo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                            <option value="-700">Emagrecimento Rápido (-700 kcal)</option>
                             <option value="-500" selected>Emagrecimento Padrão (-500 kcal)</option>
-                            <option value="-300">Emagrecimento Leve / Recomposição (-300 kcal)</option>
+                            <option value="-300">Definição / Cutting Leve (-300 kcal)</option>
                             <option value="0">Manutenção do Peso (0 kcal)</option>
-                            <option value="300">Ganho Limpo / Hipertrofia (+300 kcal)</option>
-                            <option value="500">Hipertrofia / Ganho de Massa (+500 kcal)</option>
-                            <option value="custom">Ajuste Livre Personalizado (digitar kcal)</option>
+                            <option value="300">Ganho Limpo / Bulking Leve (+300 kcal)</option>
+                            <option value="500">Hipertrofia / Ganho (+500 kcal)</option>
                         </select>
                     </div>
 
-                    <div>
-                        <div class="flex justify-between text-xs mb-1">
-                            <span class="text-slate-400 font-medium">Ajuste Calórico Fino (Déficit / Superávit)</span>
-                            <span id="labelAjusteKcal" class="font-bold text-green-400">-500 kcal</span>
+                    <!-- Ajuste Personalizável de Calorias -->
+                    <div class="bg-slate-900/90 p-3 rounded-xl border border-green-700/40 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-green-400 font-bold text-xs">Meta Calórica Diária Personalizada</label>
+                            <button onclick="ativarCaloriaAutomatica()" class="text-[10px] text-slate-400 underline hover:text-white">Usar Automático</button>
                         </div>
-                        <div class="flex gap-2 items-center">
-                            <input type="range" id="rangeAjusteKcal" min="-1200" max="1200" step="50" value="-500" oninput="window.sincronizarAjusteKcal('range')" class="flex-1 accent-green-500">
-                            <input type="text" inputmode="text" id="inputAjusteKcal" value="-500" oninput="window.sincronizarAjusteKcal('input')" class="w-20 bg-slate-900 border border-slate-700 rounded-xl p-2 text-center text-xs font-bold text-white">
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="ajustarCaloriaManual(-100)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-2 rounded-lg font-bold">-100</button>
+                            <button onclick="ajustarCaloriaManual(-50)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-2 rounded-lg font-bold">-50</button>
+                            <input type="text" inputmode="decimal" id="caloriaManualInput" oninput="aoDigitarCaloriaManual()" placeholder="Automático" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-center font-extrabold text-green-300">
+                            <button onclick="ajustarCaloriaManual(50)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-2 rounded-lg font-bold">+50</button>
+                            <button onclick="ajustarCaloriaManual(100)" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-2 rounded-lg font-bold">+100</button>
                         </div>
+                        <p class="text-[10px] text-slate-400 text-center">Toque nos botões ou digite qualquer valor para travar sua meta exata.</p>
                     </div>
 
                     <div>
-                        <label class="block text-slate-400 text-xs mb-1 font-medium">Divisão de Macronutrientes</label>
-                        <select id="estrategiaMacro" onchange="window.calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:border-green-500">
-                            <option value="peso" selected>Por Peso Corporal (Definir g/kg abaixo)</option>
-                            <option value="equilibrada">Equilibrada (35% Prot / 45% Carb / 20% Gord)</option>
-                            <option value="lowcarb">Low Carb (40% Prot / 25% Carb / 35% Gord)</option>
-                            <option value="performance">Alta Performance (25% Prot / 55% Carb / 20% Gord)</option>
+                        <label class="block text-slate-400 mb-1">Divisão de Macronutrientes</label>
+                        <select id="estrategiaMacro" onchange="calcularTudo()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                            <option value="peso" selected>Por Peso Corporal (Personalizável g/kg)</option>
+                            <option value="equilibrada">Equilibrada (30% Prot / 45% Carb / 25% Gord)</option>
+                            <option value="cutting">Definição Muscular (40% Prot / 35% Carb / 25% Gord)</option>
+                            <option value="lowcarb">Low Carb (40% Prot / 20% Carb / 40% Gord)</option>
+                            <option value="performance">Alta Performance / Corrida (25% P / 55% C / 20% G)</option>
                         </select>
                     </div>
 
-                    <!-- Subpainel g/kg quando "Por Peso Corporal" está ativo -->
-                    <div id="boxMacroPorPeso" class="grid grid-cols-2 gap-3 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
+                    <!-- Sub-opções g/kg quando "Por Peso" está ativo -->
+                    <div id="boxMacroPeso" class="grid grid-cols-2 gap-3 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
                         <div>
-                            <label class="block text-blue-400 text-[11px] mb-1 font-semibold">Proteína (g por kg)</label>
-                            <input type="text" inputmode="decimal" id="protPorKg" value="2.0" oninput="window.calcularTudo()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-bold">
+                            <label class="block text-[11px] text-blue-400 font-semibold mb-1">Proteína (g por kg)</label>
+                            <input type="text" inputmode="decimal" id="protPorKg" value="2.0" oninput="calcularTudo()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-center font-bold">
                         </div>
                         <div>
-                            <label class="block text-rose-400 text-[11px] mb-1 font-semibold">Gordura (g por kg)</label>
-                            <input type="text" inputmode="decimal" id="gordPorKg" value="0.9" oninput="window.calcularTudo()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-bold">
+                            <label class="block text-[11px] text-rose-400 font-semibold mb-1">Gordura (g por kg)</label>
+                            <input type="text" inputmode="decimal" id="gordPorKg" value="1.0" oninput="calcularTudo()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white text-center font-bold">
                         </div>
                     </div>
                 </div>
-
-                <!-- Painel Manual (Quando o usuário quer digitar a própria meta) -->
-                <div id="painelMetaManual" class="hidden space-y-3 text-sm">
-                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-3">
-                        <p class="text-[11px] text-slate-400">Digite diretamente sua meta diária desejada ou deixe que as calorias sejam calculadas pelos seus macros:</p>
-                        <div>
-                            <label class="block text-green-400 text-xs mb-1 font-bold">Meta de Calorias Diárias (kcal)</label>
-                            <input type="text" inputmode="numeric" id="manualCal" value="2100" oninput="window.calcularTudo()" class="w-full bg-slate-950 border border-green-700/60 rounded-xl p-2.5 text-white font-extrabold text-base">
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="block text-blue-400 text-[11px] mb-1 font-semibold">Proteína (g)</label>
-                                <input type="text" inputmode="numeric" id="manualProt" value="173" oninput="window.atualizarCaloriasPelosMacrosManuais()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-bold">
-                            </div>
-                            <div>
-                                <label class="block text-amber-400 text-[11px] mb-1 font-semibold">Carbo (g)</label>
-                                <input type="text" inputmode="numeric" id="manualCarb" value="180" oninput="window.atualizarCaloriasPelosMacrosManuais()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-bold">
-                            </div>
-                            <div>
-                                <label class="block text-rose-400 text-[11px] mb-1 font-semibold">Gordura (g)</label>
-                                <input type="text" inputmode="numeric" id="manualGord" value="76" oninput="window.atualizarCaloriasPelosMacrosManuais()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white font-bold">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="button" onclick="window.calcularTudo(true)" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-calculator"></i> Atualizar e Salvar Metas
-                </button>
             </div>
 
-            <!-- Card Resultados do Cálculo -->
-            <div id="resultadoCard" class="card-glass rounded-2xl p-5 shadow-xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-base font-bold text-white flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-green-500"></i> Suas Metas Diárias
-                    </h2>
-                    <button type="button" onclick="window.mudarAba('refeicoes')" class="text-xs text-green-400 hover:text-green-300 font-bold flex items-center gap-1">
-                        Ir para Diário <i class="fa-solid fa-arrow-right"></i>
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 text-center">
-                    <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800">
-                        <span class="text-[11px] text-slate-400 block">TMB (Basal)</span>
-                        <span id="resTMB" class="text-lg font-extrabold text-slate-200">-- kcal</span>
+            <!-- Painel de Resultados Metabólicos -->
+            <div class="card-glass rounded-2xl p-5 shadow-xl space-y-3">
+                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i class="fa-solid fa-chart-pie text-green-500"></i> Resumo das Suas Metas</h2>
+                <div class="grid grid-cols-2 gap-2.5 text-center">
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[11px] text-slate-400 block">Taxa Basal (TMB)</span>
+                        <span id="resTMB" class="text-base font-bold text-slate-200">-- kcal</span>
                     </div>
-                    <div class="bg-slate-900/70 p-3 rounded-xl border border-slate-800">
-                        <span class="text-[11px] text-slate-400 block">Gasto Total (GET)</span>
-                        <span id="resGET" class="text-lg font-extrabold text-slate-200">-- kcal</span>
+                    <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                        <span class="text-[11px] text-slate-400 block">Gasto Diário (GET)</span>
+                        <span id="resGET" class="text-base font-bold text-slate-200">-- kcal</span>
                     </div>
                 </div>
-
-                <div class="bg-gradient-to-r from-green-900/40 to-emerald-900/40 border border-green-600/40 p-4 rounded-xl text-center">
-                    <span class="text-[11px] text-green-400 font-bold uppercase tracking-wider block mb-0.5">Meta Calórica Diária Alvo</span>
-                    <span id="resMeta" class="text-3xl font-extrabold text-green-300">-- kcal</span>
-                    <span id="resDiffInfo" class="block text-[11px] text-slate-300 mt-0.5">--</span>
-                </div>
-
-                <!-- Barras de Macros Planejados -->
-                <div class="space-y-2.5 pt-1">
-                    <div>
-                        <div class="flex justify-between text-xs font-semibold mb-1">
-                            <span class="text-blue-400"><i class="fa-solid fa-drumstick-bite mr-1"></i> Proteínas</span>
-                            <span id="resProt" class="text-white">-- g</span>
-                        </div>
-                        <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
-                            <div id="barProt" class="bg-blue-500 h-full w-0 transition-all duration-300"></div>
-                        </div>
+                <div class="grid grid-cols-3 gap-2 text-center pt-1">
+                    <div class="bg-blue-950/30 border border-blue-800/40 p-2.5 rounded-xl">
+                        <span class="text-[10px] text-blue-400 font-bold block">PROTEÍNAS</span>
+                        <span id="resProt" class="text-base font-extrabold text-white">--g</span>
+                        <span id="resProtKcal" class="text-[10px] text-slate-400 block">-- kcal</span>
                     </div>
-
-                    <div>
-                        <div class="flex justify-between text-xs font-semibold mb-1">
-                            <span class="text-amber-400"><i class="fa-solid fa-wheat-awn mr-1"></i> Carboidratos</span>
-                            <span id="resCarb" class="text-white">-- g</span>
-                        </div>
-                        <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
-                            <div id="barCarb" class="bg-amber-500 h-full w-0 transition-all duration-300"></div>
-                        </div>
+                    <div class="bg-amber-950/30 border border-amber-800/40 p-2.5 rounded-xl">
+                        <span class="text-[10px] text-amber-400 font-bold block">CARBOIDRATOS</span>
+                        <span id="resCarb" class="text-base font-extrabold text-white">--g</span>
+                        <span id="resCarbKcal" class="text-[10px] text-slate-400 block">-- kcal</span>
                     </div>
-
-                    <div>
-                        <div class="flex justify-between text-xs font-semibold mb-1">
-                            <span class="text-rose-400"><i class="fa-solid fa-droplet mr-1"></i> Gorduras</span>
-                            <span id="resGord" class="text-white">-- g</span>
-                        </div>
-                        <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
-                            <div id="barGord" class="bg-rose-500 h-full w-0 transition-all duration-300"></div>
-                        </div>
+                    <div class="bg-rose-950/30 border border-rose-800/40 p-2.5 rounded-xl">
+                        <span class="text-[10px] text-rose-400 font-bold block">GORDURAS</span>
+                        <span id="resGord" class="text-base font-extrabold text-white">--g</span>
+                        <span id="resGordKcal" class="text-[10px] text-slate-400 block">-- kcal</span>
                     </div>
                 </div>
-
-                <div class="text-xs text-slate-400 text-center pt-2 border-t border-slate-800/80 flex justify-around">
+                <div class="text-xs text-slate-400 flex justify-around pt-2 border-t border-slate-800/80">
                     <span>IMC: <strong id="resIMC" class="text-white">--</strong></span>
-                    <span>Água ideal: <strong id="resAgua" class="text-sky-400">-- L</strong></span>
+                    <span>Meta de Água: <strong id="resAgua" class="text-sky-400">-- L/dia</strong></span>
                 </div>
+                <button onclick="mudarAba('refeicoes')" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl text-xs shadow-lg transition">Ir para o Diário de Refeições <i class="fa-solid fa-arrow-right ml-1"></i></button>
             </div>
         </section>
 
-        <!-- ==========================================
-             ABA 2: DIÁRIO DE REFEIÇÕES (ACOMPANHAMENTO)
-             ========================================== -->
-        <section id="tab-refeicoes" class="tab-content space-y-4">
+        <!-- ABA 2: DIÁRIO DE REFEIÇÕES -->
+        <section id="tab-refeicoes" class="tab-content space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-bowl-food text-green-500 mr-1"></i> Refeições do Dia</h2>
+                <button onclick="abrirModalPersonalizado()" class="text-xs bg-slate-800 hover:bg-slate-700 text-green-400 font-bold px-3 py-1.5 rounded-xl border border-slate-700"><i class="fa-solid fa-plus mr-1"></i> Criar Alimento</button>
+            </div>
+            <div id="listaRefeicoes" class="space-y-3"></div>
+        </section>
 
-            <!-- Seletor de Data (Acompanhamento Diário) -->
-            <div class="card-glass rounded-2xl p-3 shadow-lg flex items-center justify-between">
-                <button type="button" onclick="window.mudarDia(-1)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center active:scale-95">
-                    <i class="fa-solid fa-chevron-left text-xs"></i>
-                </button>
-                <div class="text-center flex flex-col items-center">
-                    <span id="labelDiaSemana" class="text-[10px] uppercase tracking-wider text-green-400 font-bold">Hoje</span>
-                    <input type="date" id="seletorData" onchange="window.selecionarDataInput()" class="bg-transparent text-white font-bold text-sm text-center focus:outline-none cursor-pointer">
+        <!-- ABA 3: BANCO DE ALIMENTOS COMPLETO -->
+        <section id="tab-alimentos" class="tab-content space-y-3">
+            <div class="card-glass rounded-2xl p-4 shadow-xl space-y-3">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-bold text-white"><i class="fa-solid fa-book-open text-green-500 mr-1"></i> Base de Alimentos (<span id="contadorAlimentos">0</span>)</h2>
+                    <button onclick="abrirModalPersonalizado()" class="bg-green-600 text-white px-2.5 py-1 rounded-lg text-xs font-bold">+ Novo</button>
                 </div>
-                <button type="button" onclick="window.mudarDia(1)" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center active:scale-95">
-                    <i class="fa-solid fa-chevron-right text-xs"></i>
-                </button>
+                <input type="text" id="filtroAlimentos" oninput="renderizarTabelaAlimentos()" placeholder="Buscar arroz, frango, ovo, tapioca, açaí..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                <select id="filtroCategoriaAlimentos" onchange="renderizarTabelaAlimentos()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-300">
+                    <option value="">Todas as Categorias</option>
+                    <option value="Carboidratos & Grãos">Carboidratos, Arroz, Feijão e Raízes</option>
+                    <option value="Pães & Matinais">Pães, Tapioca, Cuscuz e Matinais</option>
+                    <option value="Carnes, Peixes & Ovos">Carnes, Frango, Peixes e Ovos</option>
+                    <option value="Laticínios & Queijos">Leite, Queijos e Iogurtes</option>
+                    <option value="Frutas & Açaí">Frutas, Polpas e Açaí</option>
+                    <option value="Legumes & Saladas">Legumes, Verduras e Saladas</option>
+                    <option value="Gorduras & Castanhas">Azeite, Castanhas e Pasta de Amendoim</option>
+                    <option value="Suplementos & Extras">Suplementos, Doces e Bebidas</option>
+                    <option value="Personalizados">Meus Alimentos Cadastrados</option>
+                </select>
+                <div id="tabelaAlimentosLista" class="space-y-2 max-h-[58vh] overflow-y-auto pr-1"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Barra de Navegação Inferior -->
+    <nav class="fixed bottom-0 left-0 right-0 card-glass border-t border-slate-800 z-40 py-2 px-6">
+        <div class="max-w-md mx-auto flex justify-around">
+            <button onclick="mudarAba('perfil')" id="nav-btn-perfil" class="flex flex-col items-center text-green-400">
+                <i class="fa-solid fa-sliders text-base"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Metas & Calorias</span>
+            </button>
+            <button onclick="mudarAba('refeicoes')" id="nav-btn-refeicoes" class="flex flex-col items-center text-slate-400">
+                <i class="fa-solid fa-utensils text-base"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Diário do Dia</span>
+            </button>
+            <button onclick="mudarAba('alimentos')" id="nav-btn-alimentos" class="flex flex-col items-center text-slate-400">
+                <i class="fa-solid fa-carrot text-base"></i>
+                <span class="text-[10px] font-semibold mt-0.5">Alimentos</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MODAL ADICIONAR ALIMENTO NA REFEIÇÃO -->
+    <div id="modalAdd" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="card-glass rounded-2xl p-4 w-full max-w-sm space-y-3 border border-slate-700 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 id="modalTituloRef" class="text-sm font-bold text-white">Adicionar na Refeição</h3>
+                <button onclick="fecharModalAdd()" class="text-slate-400 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>
             </div>
 
-            <!-- Painel de Progresso do Dia (Calorias & Macros Consumidos vs Meta) -->
-            <div class="card-glass rounded-2xl p-4 shadow-xl space-y-3.5">
-                <div class="flex justify-between items-end">
-                    <div>
-                        <span class="text-[11px] text-slate-400 font-medium block">Consumido no Dia</span>
-                        <div class="text-2xl font-extrabold text-white leading-tight">
-                            <span id="totalConsumido" class="text-green-400">0</span>
-                            <span class="text-sm text-slate-400 font-normal">/ <span id="metaCaloricaDiaria">2000</span> kcal</span>
+            <div class="space-y-2.5 text-xs">
+                <input type="text" id="buscaModalAlimento" oninput="filtrarSelectModal()" placeholder="🔍 Digite para filtrar (ex: frango, ovo, pão...)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                
+                <div>
+                    <label class="block text-slate-400 text-[11px] mb-1">Alimento Selecionado</label>
+                    <select id="selectAlimentoModal" onchange="atualizarPreviaModal()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white"></select>
+                    <span id="dicaMedidaCaseira" class="text-[10px] text-green-400 block mt-1"></span>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-slate-400 text-[11px]">Quantidade (em gramas ou ml)</label>
+                        <div class="space-x-1">
+                            <button onclick="setQtdRapida(0.5)" class="bg-slate-800 px-1.5 py-0.5 rounded text-[10px] text-slate-300">1/2 porção</button>
+                            <button onclick="setQtdRapida(1)" class="bg-slate-800 px-1.5 py-0.5 rounded text-[10px] text-green-400 font-bold">1 porção</button>
+                            <button onclick="setQtdRapida(2)" class="bg-slate-800 px-1.5 py-0.5 rounded text-[10px] text-slate-300">2x</button>
                         </div>
                     </div>
-                    <div class
+                    <input type="text" inputmode="decimal" id="qtdAlimentoModal" value="100" oninput="atualizarPreviaModal()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white font-bold text-center">
+                </div>
+
+                <!-- Prévia Instantânea -->
+                <div class="bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 flex justify-around text-center">
+                    <div><span class="text-[10px] text-slate-400 block">Calorias</span><strong id="prevCal" class="text-green-400">0 kcal</strong></div>
+                    <div><span class="text-[10px] text-slate-400 block">Proteína</span><strong id="prevProt" class="text-blue-400">0g</strong></div>
+                    <div><span class="text-[10px] text-slate-400 block">Carbo</span><strong id="prevCarb" class="text-amber-400">0g</strong></div>
+                    <div><span class="text-[10px] text-slate-400 block">Gordura</span><strong id="prevGord" class="text-rose-400">0g</strong></div>
+                </div>
+
+                <button onclick="confirmarAddAlimento()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl transition shadow-lg">Confirmar e Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CRIAR ALIMENTO PERSONALIZADO -->
+    <div id="modalPersonalizado" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="card-glass rounded-2xl p-4 w-full max-w-sm space-y-3 border border-slate-700 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                <h3 class="text-sm font-bold text-white">Cadastrar Alimento ou Prato</h3>
+                <button onclick="fecharModalPersonalizado()" class="text-slate-400 hover:text-white px-2"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-2.5 text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1">Nome do Alimento</label>
+                    <input type="text" id="novoNome" placeholder="Ex: Meu Shake / Prato Feito" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="block text-slate-400 mb-1">Porção Base (g/ml)</label><input type="text" inputmode="decimal" id="novaPorcao" value="100" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white"></div>
+                    <div><label class="block text-slate-400 mb-1">Calorias (kcal)</label><input type="text" inputmode="decimal" id="novaCal" value="150" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white"></div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div><label class="block text-blue-400 mb-1">Prot (g)</label><input type="text" inputmode="decimal" id="novoProt" value="10" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white"></div>
+                    <div><label class="block text-amber-400 mb-1">Carb (g)</label><input type="text" inputmode="decimal" id="novoCarb" value="20" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white"></div>
+                    <div><label class="block text-rose-400 mb-1">Gord (g)</label><input type="text" inputmode="decimal" id="novoGord" value="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white"></div>
+                </div>
+                <button onclick="salvarAlimentoPersonalizado()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold p-3 rounded-xl transition">Salvar na Minha Lista</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Funções seguras de armazenamento e números (Blindadas contra erros no iOS/Safari)
+        function num(val, padrao = 0) {
+            if (val === null || val === undefined || val === '') return padrao;
+            let n = parseFloat(String(val).replace(',', '.').trim());
+            return isNaN(n) ? padrao : n;
+        }
+        function lerStorage(chave, padrao) {
+            try { let d = localStorage.getItem(chave); return d ? JSON.parse(d) : padrao; } catch(e) { return padrao; }
+        }
+        function salvarStorage(chave, valor) {
+            try { localStorage.setItem(chave, JSON.stringify(valor)); } catch(e) {}
+        }
+
+        // Base Completa de Alimentos Brasileiros [id, nome, categoria, porcaoPadraoG, medidaCaseira, kcal, prot, carb, gord]
+        const rawAlimentos = [
+            // Carboidratos & Grãos
+            ["arroz_branco","Arroz branco cozido","Carboidratos & Grãos",100,"4 col. sopa cheias (100g)",128,2.5,28.1,0.2],
+            ["arroz_int","Arroz integral cozido","Carboidratos & Grãos",100,"4 col. sopa cheias (100g)",124,2.6,25.8,1.0],
+            ["feijao_car","Feijão carioca cozido","Carboidratos & Grãos",100,"1 concha média (100g)",76,4.8,13.6,0.5],
+            ["feijao_preto","Feijão preto cozido","Carboidratos & Grãos",100,"1 concha média (100g)",77,4.5,14.0,0.5],
+            ["macarrao","Macarrão cozido","Carboidratos & Grãos",100,"1 pegador médio (100g)",126,4.2,26.0,0.5],
+            ["batata_doce","Batata-doce cozida","Carboidratos & Grãos",100,"1 rodela grande (100g)",77,0.6,18.4,0.1],
+            ["batata_ing","Batata inglesa cozida/assada","Carboidratos & Grãos",100,"1 unidade média (100g)",52,1.2,11.9,0.0],
+            ["batata_frita","Batata frita / Airfryer","Carboidratos & Grãos",100,"1 porção pequena (100g)",267,3.0,35.6,13.1],
+            ["mandioca","Macaxeira / Mandioca cozida","Carboidratos & Grãos",100,"2 pedaços médios (100g)",125,0.6,30.1,0.3],
+            ["inhame","Inhame / Cará cozido","Carboidratos & Grãos",100,"1 fatia grande (100g)",97,1.5,23.2,0.1],
+            ["farinha_mand","Farinha de mandioca / Farinha d'água","Carboidratos & Grãos",30,"2 col. sopa (30g)",109,0.5,26.8,0.1],
+            ["farofa","Farofa pronta temperada","Carboidratos & Grãos",30,"2 col. sopa (30g)",122,0.6,24.0,2.7],
+            ["milho","Milho verde cozido/lata","Carboidratos & Grãos",100,"1 espiga ou 4 col. sopa (100g)",98,3.2,17.1,2.4],
+            ["lentilha","Lentilha cozida","Carboidratos & Grãos",100,"1 concha média (100g)",93,6.3,16.3,0.5],
+            ["grao_bico","Grão-de-bico cozido","Carboidratos & Grãos",100,"4 col. sopa (100g)",164,8.9,27.4,2.6],
+            // Pães & Matinais
+            ["pao_frances","Pão francês","Pães & Matinais",50,"1 unidade (50g)",135,4.0,28.5,0.5],
+            ["pao_forma","Pão de forma tradicional","Pães & Matinais",50,"2 fatias (50g)",126,4.3,24.5,1.4],
+            ["pao_int","Pão de forma integral","Pães & Matinais",50,"2 fatias (50g)",123,5.6,21.0,1.8],
+            ["pao_queijo","Pão de queijo assado","Pães & Matinais",50,"1 unidade grande / 2 médios (50g)",168,3.5,20.5,8.0],
+            ["cuscuz","Cuscuz de milho cozido","Pães & Matinais",100,"1 porção média (100g)",112,2.3,25.0,0.4],
+            ["tapioca","Massa de tapioca (goma)","Pães & Matinais",80,"4 col. sopa / 1 tapioca (80g)",190,0.2,47.2,0.1],
+            ["crepioca","Crepioca (1 ovo + 2 col. goma)","Pães & Matinais",90,"1 unidade pronta (90g)",168,6.5,24.0,5.1],
+            ["aveia","Aveia em flocos / farelo","Pães & Matinais",30,"2 col. sopa cheias (30g)",104,4.3,17.0,2.2],
+            ["granola","Granola tradicional","Pães & Matinais",30,"2 col. sopa (30g)",125,2.8,21.5,3.2],
+            ["biscoito_agua","Biscoito Cream Cracker / Água e Sal","Pães & Matinais",30,"6 unidades (30g)",129,3.1,20.6,4.0],
+            ["torrada","Torrada tradicional/integral","Pães & Matinais",30,"3 a 4 unidades (30g)",112,3.4,21.0,1.6],
+            // Carnes, Peixes & Ovos
+            ["frango_peito","Peito de frango grelhado/desfiado","Carnes, Peixes & Ovos",100,"1 filé médio (100g)",159,32.0,0.0,2.5],
+            ["frango_coxa","Coxa/Sobrecoxa de frango assada","Carnes, Peixes & Ovos",100,"1 pedaço grande (100g)",215,26.0,0.0,12.0],
+            ["patinho","Carne bovina magra (Patinho/Coxão/Moída)","Carnes, Peixes & Ovos",100,"1 bife médio ou 4 col. sopa (100g)",219,35.9,0.0,7.3],
+            ["alcatra","Alcatra / Contrafilé grelhado","Carnes, Peixes & Ovos",100,"1 bife médio (100g)",241,31.9,0.0,11.6],
+            ["picanha","Picanha grelhada","Carnes, Peixes & Ovos",100,"1 fatia grossa (100g)",289,27.0,0.0,19.5],
+            ["carne_sol","Carne de sol / Charque cozida","Carnes, Peixes & Ovos",100,"1 porção média (100g)",245,31.0,0.0,13.0],
+            ["figado","Fígado bovino grelhado","Carnes, Peixes & Ovos",100,"1 bife médio (100g)",225,29.9,4.2,9.0],
+            ["porco_lombo","Lombo / Pernil suíno assado","Carnes, Peixes & Ovos",100,"1 fatia média (100g)",210,31.5,0.0,8.8],
+            ["calabresa","Linguiça calabresa acebolada","Carnes, Peixes & Ovos",80,"1 gomo médio (80g)",245,13.5,1.5,20.5],
+            ["bacon","Bacon frito","Carnes, Peixes & Ovos",30,"2 fatias (30g)",162,9.0,0.0,14.0],
+            ["ovo_cozido","Ovo de galinha cozido","Carnes, Peixes & Ovos",50,"1 unidade (50g)",73,6.3,0.4,5.0],
+            ["ovo_frito","Ovo mexido ou frito","Carnes, Peixes & Ovos",50,"1 unidade (50g)",92,6.0,0.4,7.2],
+            ["clara_ovo","Clara de ovo cozida","Carnes, Peixes & Ovos",35,"1 clara (35g)",18,3.9,0.2,0.0],
+            ["peixe_file","Filé de peixe grelhado (Tilápia/Pescada/Pirarucu)","Carnes, Peixes & Ovos",100,"1 filé médio (100g)",118,24.5,0.0,1.8],
+            ["tambaqui","Tambaqui / Tucunaré assado ou cozido","Carnes, Peixes & Ovos",100,"1 posta média (100g)",185,22.0,0.0,10.5],
+            ["salmao","Salmão grelhado","Carnes, Peixes & Ovos",100,"1 posta média (100g)",243,26.1,0.0,14.5],
+            ["atum_lata","Atum em lata (escorrido)","Carnes, Peixes & Ovos",60,"3 col. sopa (60g)",85,15.5,0.0,2.2],
+            ["sardinha","Sardinha em lata","Carnes, Peixes & Ovos",60,"2 unidades (60g)",128,14.0,0.0,7.8],
+            ["camarao","Camarão cozido","Carnes, Peixes & Ovos",100,"1 porção média (100g)",90,19.0,0.0,1.0],
+            ["presunto","Presunto magro / Peito de peru","Carnes, Peixes & Ovos",40,"2 fatias (40g)",46,7.5,0.8,1.4],
+            // Laticínios & Queijos
+            ["leite_int","Leite integral","Laticínios & Queijos",200,"1 copo (200ml)",118,6.0,9.4,6.4],
+            ["leite_des","Leite desnatado","Laticínios & Queijos",200,"1 copo (200ml)",70,6.4,9.8,0.4],
+            ["leite_po","Leite em pó integral","Laticínios & Queijos",25,"2 col. sopa (25g)",124,6.5,9.6,6.7],
+            ["iogurte_nat","Iogurte natural integral","Laticínios & Queijos",170,"1 copo (170g)",102,6.8,7.5,5.1],
+            ["iogurte_des","Iogurte natural desnatado","Laticínios & Queijos",170,"1 copo (170g)",70,7.3,9.8,0.3],
+            ["iogurte_prot","Iogurte Proteico (YoPRO / 15g)","Laticínios & Queijos",250,"1 unidade (250ml)",150,15.0,18.0,1.5],
+            ["queijo_muc","Queijo muçarela","Laticínios & Queijos",30,"1.5 fatia (30g)",99,6.8,0.9,7.6],
+            ["queijo_minas","Queijo minas frescal","Laticínios & Queijos",30,"1 fatia média (30g)",74,5.2,1.0,5.4],
+            ["queijo_coalho","Queijo coalho","Laticínios & Queijos",40,"1 espetinho / fatia (40g)",142,10.0,0.8,11.0],
+            ["requeijao","Requeijão cremoso tradicional","Laticínios & Queijos",30,"1 col. sopa cheia (30g)",76,2.1,0.5,7.5],
+            ["requeijao_light","Requeijão light / Creme de ricota","Laticínios & Queijos",30,"1 col. sopa cheia (30g)",48,3.3,1.2,3.4],
+            ["manteiga","Manteiga com sal","Laticínios & Queijos",10,"1 ponta de faca / col. chá (10g)",72,0.1,0.0,8.2],
+            // Frutas & Açaí
+            ["banana","Banana prata ou nanica","Frutas & Açaí",70,"1 unidade média (70g)",65,0.9,17.0,0.1],
+            ["banana_terra","Banana-da-terra cozida/frita","Frutas & Açaí",100,"1 unidade média (100g)",128,1.0,33.0,0.2],
+            ["maca","Maçã com casca","Frutas & Açaí",130,"1 unidade média (130g)",73,0.4,19.8,0.0],
+            ["mamao","Mamão papaia / formosa","Frutas & Açaí",150,"1 fatia grande ou 1/2 papaia (150g)",68,0.8,17.4,0.2],
+            ["melancia","Melancia","Frutas & Açaí",200,"1 fatia grande (200g)",66,1.8,16.2,0.0],
+            ["abacaxi","Abacaxi","Frutas & Açaí",100,"1 fatia grande (100g)",48,0.9,12.3,0.1],
+            ["manga","Manga","Frutas & Açaí",140,"1 unidade pequena (140g)",90,0.7,23.0,0.3],
+            ["morango","Morango","Frutas & Açaí",100,"8 unidades médias (100g)",30,0.9,6.8,0.3],
+            ["laranja","Laranja / Mexerica","Frutas & Açaí",140,"1 unidade média (140g)",52,1.1,13.0,0.1],
+            ["uva","Uva","Frutas & Açaí",100,"1 cacho pequeno (100g)",69,0.7,18.0,0.2],
+            ["abacate","Abacate","Frutas & Açaí",100,"4 col. sopa (100g)",96,1.2,6.0,8.4],
+            ["acai_puro","Açaí puro tradicional (sem açúcar)","Frutas & Açaí",200,"1 tigela média / 200ml",140,2.4,12.0,9.5],
+            ["acai_xarope","Açaí batido com xarope/guaraná","Frutas & Açaí",200,"1 tigela pequena (200g)",220,1.6,43.0,5.2],
+            // Legumes & Saladas
+            ["salada_folhas","Salada de folhas (Alface, Rúcula, Couve)","Legumes & Saladas",100,"1 prato cheio (100g)",18,1.5,3.0,0.2],
+            ["tomate_pepino","Tomate e Pepino em rodelas","Legumes & Saladas",100,"1 porção média (100g)",16,0.9,3.5,0.1],
+            ["brocolis","Brócolis / Couve-flor cozido","Legumes & Saladas",100,"1 xícara (100g)",25,2.1,4.4,0.3],
+            ["cenoura_bet","Cenoura / Beterraba cozida","Legumes & Saladas",100,"4 col. sopa (100g)",38,1.0,8.8,0.2],
+            ["abobora","Abóbora / Jerimum cozido","Legumes & Saladas",100,"3 col. sopa (100g)",48,1.4,10.8,0.1],
+            // Gorduras & Castanhas
+            ["azeite","Azeite de oliva extravirgem","Gorduras & Castanhas",10,"1 col. sopa (10ml)",88,0.0,0.0,10.0],
+            ["pasta_amend","Pasta de amendoim integral","Gorduras & Castanhas",20,"1 col. sopa cheia (20g)",118,5.6,3.2,9.8],
+            ["amendoim","Amendoim torrado","Gorduras & Castanhas",30,"1 punhado (30g)",176,8.0,5.5,14.5],
+            ["castanha_para","Castanha-do-Pará / Castanha de Caju","Gorduras & Castanhas",20,"4 unidades (20g)",130,3.0,2.5,12.5],
+            ["maionese","Maionese tradicional","Gorduras & Castanhas",15,"1 col. sopa (15g)",102,0.1,0.3,11.0],
+            // Suplementos & Extras
+            ["whey_conc","Whey Protein Concentrado (80%)","Suplementos & Extras",30,"1 scoop padrão (30g)",120,24.0,2.5,1.5],
+            ["whey_iso","Whey Protein Isolado","Suplementos & Extras",30,"1 scoop padrão (30g)",112,26.0,1.0,0.5],
+            ["albumina","Albumina em pó","Suplementos & Extras",30,"2 col. sopa (30g)",108,24.0,1.5,0.0],
+            ["barra_prot","Barra de Proteína","Suplementos & Extras",45,"1 unidade (45g)",175,15.0,16.0,5.5],
+            ["chocolate","Chocolate ao leite / meio amargo","Suplementos & Extras",25,"1 fileira / 4 quadradinhos (25g)",135,1.8,14.5,7.8],
+            ["doce_leite","Doce de leite / Leite condensado","Suplementos & Extras",25,"1 col. sopa (25g)",82,1.8,14.0,2.0],
+            ["mel","Mel de abelha","Suplementos & Extras",20,"1 col. sopa (20g)",62,0.0,16.5,0.0],
+            ["suco_laranja","Suco natural de fruta","Suplementos & Extras",250,"1 copo (250ml)",115,1.5,27.0,0.2],
+            ["agua_coco","Água de coco natural","Suplementos & Extras",250,"1 copo (250ml)",50,0.0,12.5,0.0]
+        ];
+
+        const alimentosBase = rawAlimentos.map(a => ({
+            id: a[0], nome: a[1], cat: a[2], porcao: a[3], medida: a[4], cal: a[5], prot: a[6], carb: a[7], gord: a[8]
+        }));
+
+        let alimentosPersonalizados = lerStorage('nutri_personalizados_v2', []);
+        let alimentosCompletos = [...alimentosBase, ...alimentosPersonalizados];
+
+        let perfil = lerStorage('nutri_perfil_v2', {
+            sexo: 'masculino', idade: 31, peso: 86.5, altura: 173, atividade: 1.55,
+            objetivo: -500, estrategia: 'peso', protPorKg: 2.0, gordPorKg: 1.0, caloriaManual: null
+        });
+
+        let dataHojeStr = new Date().toISOString().slice(0, 10);
+        let historicoDias = lerStorage('nutri_historico_v2', {});
+
+        function obterDiaAtual(dataStr) {
+            if (!historicoDias[dataStr]) {
+                historicoDias[dataStr] = {
+                    aguaMl: 0,
+                    refeicoes: [
+                        { id: 'cafe', nome: 'Café da Manhã', itens: [] },
+                        { id: 'lanche_m', nome: 'Lanche da Manhã', itens: [] },
+                        { id: 'almoco', nome: 'Almoço', itens: [] },
+                        { id: 'lanche_t', nome: 'Lanche da Tarde', itens: [] },
+                        { id: 'treino', nome: 'Pré / Pós-Treino', itens: [] },
+                        { id: 'jantar', nome: 'Jantar', itens: [] },
+                        { id: 'ceia', nome: 'Ceia', itens: [] }
+                    ]
+                };
+            }
+            return historicoDias[dataStr];
+        }
+
+        let metaAtiva = { cal: 2000, prot: 160, carb: 200, gord: 70 };
+        let refeicaoAtualId = 'cafe';
+
+        function mudarAba(aba) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + aba).classList.add('active');
+            ['perfil', 'refeicoes', 'alimentos'].forEach(a => {
+                const btn = document.getElementById('nav-btn-' + a);
+                if (a === aba) {
+                    btn.classList.remove('text-slate-400');
+                    btn.classList.add('text-green-400');
+                } else {
+                    btn.classList.add('text-slate-400');
+                    btn.classList.remove('text-green-400');
+                }
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function carregarPerfilNaTela() {
+            document.getElementById('dataAtual').value = dataHojeStr;
+            document.getElementById('sexo').value = perfil.sexo || 'masculino';
+            document.getElementById('idade').value = perfil.idade || 31;
+            document.getElementById('peso').value = perfil.peso || 86.5;
+            document.getElementById('altura').value = perfil.altura || 173;
+            document.getElementById('atividade').value = perfil.atividade || 1.55;
+            document.getElementById('objetivo').value = perfil.objetivo !== undefined ? perfil.objetivo : -500;
+            document.getElementById('estrategiaMacro').value = perfil.estrategia || 'peso';
+            document.getElementById('protPorKg').value = perfil.protPorKg || 2.0;
+            document.getElementById('gordPorKg').value = perfil.gordPorKg || 1.0;
+            document.getElementById('caloriaManualInput').value = perfil.caloriaManual ? perfil.caloriaManual : '';
+        }
+
+        function aoMudarObjetivo() {
+            perfil.caloriaManual = null;
+            document.getElementById('caloriaManualInput').value = '';
+            calcularTudo();
+        }
+
+        function ativarCaloriaAutomatica() {
+            perfil.caloriaManual = null;
+            document.getElementById('caloriaManualInput').value = '';
+            calcularTudo();
+        }
+
+        function ajustarCaloriaManual(delta) {
+            let base = perfil.caloriaManual ? num(perfil.caloriaManual) : metaAtiva.cal;
+            perfil.caloriaManual = Math.max(800, Math.round(base + delta));
+            document.getElementById('caloriaManualInput').value = perfil.caloriaManual;
+            calcularTudo();
+        }
+
+        function aoDigitarCaloriaManual() {
+            let val = document.getElementById('caloriaManualInput').value.trim();
+            perfil.caloriaManual = val === '' ? null : Math.max(500, num(val, 2000));
+            calcularTudo();
+        }
+
+        function calcularTudo() {
+            perfil.sexo = document.getElementById('sexo').value;
+            perfil.idade = num(document.getElementById('idade').value, 31);
+            perfil.peso = num(document.getElementById('peso').value, 75);
+            perfil.altura = num(document.getElementById('altura').value, 173);
+            perfil.atividade = num(document.getElementById('atividade').value, 1.55);
+            perfil.objetivo = num(document.getElementById('objetivo').value, 0);
+            perfil.estrategia = document.getElementById('estrategiaMacro').value;
+            perfil.protPorKg = num(document.getElementById('protPorKg').value, 2.0);
+            perfil.gordPorKg = num(document.getElementById('gordPorKg').value, 1.0);
+
+            document.getElementById('boxMacroPeso').style.display = perfil.estrategia === 'peso' ? 'grid' : 'none';
+
+            salvarStorage('nutri_perfil_v2', perfil);
+
+            let tmb = (10 * perfil.peso) + (6.25 * perfil.altura) - (5 * perfil.idade) + (perfil.sexo === 'masculino' ? 5 : -161);
+            let get = Math.round(tmb * perfil.atividade);
+            let metaCalCalculada = Math.round(get + perfil.objetivo);
+            let metaCal = perfil.caloriaManual ? Math.round(perfil.caloriaManual) : metaCalCalculada;
+
+            if (!perfil.caloriaManual) {
+                document.getElementById('caloriaManualInput').placeholder = `Auto: ${metaCalCalculada} kcal`;
+            }
+
+            let imc = (perfil.peso / Math.pow(perfil.altura / 100, 2)).toFixed(1);
+            let aguaLitros = (perfil.peso * 0.035).toFixed(1);
+
+            let p = 0, c = 0, g = 0;
+            if (perfil.estrategia === 'peso') {
+                p = perfil.peso * perfil.protPorKg;
+                g = perfil.peso * perfil.gordPorKg;
+                let calRest = metaCal - ((p * 4) + (g * 9));
+                c = Math.max(30, calRest / 4);
+            } else if (perfil.estrategia === 'equilibrada') {
+                p = (metaCal * 0.30) / 4; c = (metaCal * 0.45) / 4; g = (metaCal * 0.25) / 9;
+            } else if (perfil.estrategia === 'cutting') {
+                p = (metaCal * 0.40) / 4; c = (metaCal * 0.35) / 4; g = (metaCal * 0.25) / 9;
+            } else if (perfil.estrategia === 'lowcarb') {
+                p = (metaCal * 0.40) / 4; c = (metaCal * 0.20) / 4; g = (metaCal * 0.40) / 9;
+            } else if (perfil.estrategia === 'performance') {
+                p = (metaCal * 0.25) / 4; c = (metaCal * 0.55) / 4; g = (metaCal * 0.20) / 9;
+            }
+
+            metaAtiva = { cal: metaCal, prot: Math.round(p), carb: Math.round(c), gord: Math.round(g) };
+
+            document.getElementById('resTMB').innerText = `${Math.round(tmb)} kcal`;
+            document.getElementById('resGET').innerText = `${get} kcal`;
+            document.getElementById('resProt').innerText = `${metaAtiva.prot}g`;
+            document.getElementById('resProtKcal').innerText = `${metaAtiva.prot * 4} kcal`;
+            document.getElementById('resCarb').innerText = `${metaAtiva.carb}g`;
+            document.getElementById('resCarbKcal').innerText = `${metaAtiva.carb * 4} kcal`;
+            document.getElementById('resGord').innerText = `${metaAtiva.gord}g`;
+            document.getElementById('resGordKcal').innerText = `${metaAtiva.gord * 9} kcal`;
+            document.getElementById('resIMC').innerText = imc;
+            document.getElementById('resAgua').innerText = `${aguaLitros} L/dia`;
+
+            atualizarPainelTopo();
+        }
+
+        function trocarData() {
+            dataHojeStr = document.getElementById('dataAtual').value || new Date().toISOString().slice(0, 10);
+            renderizarRefeicoes();
+        }
+
+        function addAgua(ml) {
+            let dia = obterDiaAtual(dataHojeStr);
+            dia.aguaMl = Math.max(0, (dia.aguaMl || 0) + ml);
+            salvarStorage('nutri_historico_v2', historicoDias);
+            atualizarPainelTopo();
+        }
+
+        function atualizarPainelTopo() {
+            let dia = obterDiaAtual(dataHojeStr);
+            let totCal = 0, totP = 0, totC = 0, totG = 0;
+
+            dia.refeicoes.forEach(ref => {
+                ref.itens.forEach(item => {
+                    let mult = item.qtd / item.porcaoBase;
+                    totCal += item.cal * mult;
+                    totP += item.prot * mult;
+                    totC += item.carb * mult;
+                    totG += item.gord * mult;
+                });
+            });
+
+            totCal = Math.round(totCal);
+            totP = Math.round(totP);
+            totC = Math.round(totC);
+            totG = Math.round(totG);
+
+            document.getElementById('topoMetaCal').innerText = metaAtiva.cal;
+            document.getElementById('topoConsumidoCal').innerText = totCal;
+            document.getElementById('topoAgua').innerText = ((dia.aguaMl || 0) / 1000).toFixed(2) + 'L';
+
+            let saldo = metaAtiva.cal - totCal;
+            let elSaldo = document.getElementById('statusSaldo');
+            if (saldo >= 0) {
+                elSaldo.innerText = `Restam ${saldo} kcal`;
+                elSaldo.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-green-950 text-green-400 border border-green-800';
+            } else {
+                elSaldo.innerText = `+${Math.abs(saldo)} kcal acima`;
+                elSaldo.className = 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-800';
+            }
+
+            document.getElementById('topoProtTxt').innerText = `${totP}/${metaAtiva.prot}g`;
+            document.getElementById('topoCarbTxt').innerText = `${totC}/${metaAtiva.carb}g`;
+            document.getElementById('topoGordTxt').innerText = `${totG}/${metaAtiva.gord}g`;
+
+            document.getElementById('barDiaProt').style.width = `${Math.min(100, (totP / (metaAtiva.prot || 1)) * 100)}%`;
+            document.getElementById('barDiaCarb').style.width = `${Math.min(100, (totC / (metaAtiva.carb || 1)) * 100)}%`;
+            document.getElementById('barDiaGord').style.width = `${Math.min(100, (totG / (metaAtiva.gord || 1)) * 100)}%`;
+        }
+
+        function renderizarRefeicoes() {
+            let dia = obterDiaAtual(dataHojeStr);
+            const container = document.getElementById('listaRefeicoes');
+            container.innerHTML = '';
+
+            dia.refeicoes.forEach(ref => {
+                let calRef = 0, pRef = 0, cRef = 0, gRef = 0;
+                ref.itens.forEach(item => {
+                    let mult = item.qtd / item.porcaoBase;
+                    calRef += item.cal * mult;
+                    pRef += item.prot * mult;
+                    cRef += item.carb * mult;
+                    gRef += item.gord * mult;
+                });
+
+                let htmlItens = ref.itens.map((item, idx) => {
+                    let mult = item.qtd / item.porcaoBase;
+                    return `
+                    <div class="flex justify-between items-center bg-slate-900/70 p-2.5 rounded-xl text-xs border border-slate-800/80 my-1.5">
+                        <div>
+                            <span class="font-bold text-slate-200 block">${item.nome}</span>
+                            <span class="text-[10px] text-slate-400">${item.qtd}g • <strong class="text-green-400">${Math.round(item.cal * mult)} kcal</strong> (P:${Math.round(item.prot * mult)}g C:${Math.round(item.carb * mult)}g G:${Math.round(item.gord * mult)}g)</span>
+                        </div>
+                        <button onclick="removerItemRefeicao('${ref.id}', ${idx})" class="text-rose-400 hover:text-rose-300 px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>`;
+                }).join('');
+
+                container.innerHTML += `
+                    <div class="card-glass rounded-2xl p-4 shadow-lg space-y-2">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold text-sm text-white">${ref.nome}</h3>
+                                <span class="text-[10px] text-slate-400">P: ${Math.round(pRef)}g • C: ${Math.round(cRef)}g • G: ${Math.round(gRef)}g</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-extrabold text-green-400">${Math.round(calRef)} kcal</span>
+                                <button onclick="abrirModalAdd('${ref.id}', '${ref.nome}')" class="bg-green-600 hover:bg-green-500 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold shadow"><i class="fa-solid fa-plus mr-1"></i>Add</button>
+                            </div>
+                        </div>
+                        <div>${htmlItens || '<p class="text-[11px] text-slate-500 italic py-1">Toque em +Add para incluir alimentos.</p>'}</div>
+                    </div>`;
+            });
+            atualizarPainelTopo();
+        }
+
+        function abrirModalAdd(refId, refNome) {
+            refeicaoAtualId = refId;
+            document.getElementById('modalTituloRef').innerText = `Adicionar em: ${refNome}`;
+            document.getElementById('buscaModalAlimento').value = '';
+            filtrarSelectModal();
+            document.getElementById('modalAdd').classList.remove('hidden');
+        }
+
+        function fecharModalAdd() {
+            document.getElementById('modalAdd').classList.add('hidden');
+        }
+
+        function filtrarSelectModal() {
+            const termo = (document.getElementById('buscaModalAlimento').value || '').toLowerCase();
+            const select = document.getElementById('selectAlimentoModal');
+            select.innerHTML = '';
+
+            const filtrados = alimentosCompletos
+                .filter(a => a.nome.toLowerCase().includes(termo) || (a.cat && a.cat.toLowerCase().includes(termo)))
+                .sort((a, b) => a.nome.localeCompare(b.nome));
+
+            filtrados.forEach(alim => {
+                select.innerHTML += `<option value="${alim.id}">${alim.nome} (${alim.cal} kcal / ${alim.porcao}g)</option>`;
+            });
+
+            if (filtrados.length > 0) {
+                document.getElementById('qtdAlimentoModal').value = filtrados[0].porcao;
+            }
+            atualizarPreviaModal();
+        }
+
+        function setQtdRapida(multiplicador) {
+            const selectId = document.getElementById('selectAlimentoModal').value;
+            const alim = alimentosCompletos.find(a => a.id === selectId);
+            if (alim) {
+                document.getElementById('qtdAlimentoModal').value = Math.round(alim.porcao * multiplicador);
+                atualizarPreviaModal();
+            }
+        }
+
+        function atualizarPreviaModal() {
+            const selectId = document.getElementById('selectAlimentoModal').value;
+            const qtd = num(document.getElementById('qtdAlimentoModal').value, 100);
+            const alim = alimentosCompletos.find(a => a.id === selectId);
+
+            if (!alim) return;
+            document.getElementById('dicaMedidaCaseira').innerText = `💡 Referência: ${alim.medida || (alim.porcao + 'g')}`;
+
+            let mult = qtd / alim.porcao;
+            document.getElementById('prevCal').innerText = `${Math.round(alim.cal * mult)} kcal`;
+            document.getElementById('prevProt').innerText = `${(alim.prot * mult).toFixed(1)}g`;
+            document.getElementById('prevCarb').innerText = `${(alim.carb * mult).toFixed(1)}g`;
+            document.getElementById('prevGord').innerText = `${(alim.gord * mult).toFixed(1)}g`;
+        }
+
+        function confirmarAddAlimento() {
+            const selectId = document.getElementById('selectAlimentoModal').value;
+            const qtd = num(document.getElementById('qtdAlimentoModal').value, 100);
+            const alim = alimentosCompletos.find(a => a.id === selectId);
+            if (!alim) return;
+
+            let dia = obterDiaAtual(dataHojeStr);
+            const ref = dia.refeicoes.find(r => r.id === refeicaoAtualId);
+            if (ref) {
+                ref.itens.push({
+                    nome: alim.nome,
+                    porcaoBase: alim.porcao,
+                    cal: alim.cal,
+                    prot: alim.prot,
+                    carb: alim.carb,
+                    gord: alim.gord,
+                    qtd: qtd
+                });
+                salvarStorage('nutri_historico_v2', historicoDias);
+                renderizarRefeicoes();
+            }
+            fecharModalAdd();
+        }
+
+        function removerItemRefeicao(refId, idx) {
+            let dia = obterDiaAtual(dataHojeStr);
+            const ref = dia.refeicoes.find(r => r.id === refId);
+            if (ref) {
+                ref.itens.splice(idx, 1);
+                salvarStorage('nutri_historico_v2', historicoDias);
+                renderizarRefeicoes();
+            }
+        }
+
+        function resetarDia() {
+            if (confirm('Deseja limpar todas as refeições registradas na data selecionada?')) {
+                delete historicoDias[dataHojeStr];
+                salvarStorage('nutri_historico_v2', historicoDias);
+                renderizarRefeicoes();
+            }
+        }
+
+        function renderizarTabelaAlimentos() {
+            const termo = (document.getElementById('filtroAlimentos').value || '').toLowerCase();
+            const cat = document.getElementById('filtroCategoriaAlimentos').value;
+            const container = document.getElementById('tabelaAlimentosLista');
+            container.innerHTML = '';
+
+            const lista = alimentosCompletos.filter(a => {
+                const matchNome = a.nome.toLowerCase().includes(termo);
+                const matchCat = !cat || a.cat === cat;
+                return matchNome && matchCat;
+            }).sort((a, b) => a.nome.localeCompare(b.nome));
+
+            document.getElementById('contadorAlimentos').innerText = lista.length;
+
+            lista.forEach(alim => {
+                container.innerHTML += `
+                    <div class="bg-slate-900/70 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+                        <div>
+                            <span class="font-bold text-slate-200 block">${alim.nome}</span>
+                            <span class="text-[10px] text-slate-400">${alim.medida || (alim.porcao + 'g')} • <strong class="text-green-400">${alim.cal} kcal</strong></span>
+                        </div>
+                        <div class="text-right text-[10px] text-slate-300 space-x-1.5">
+                            <span class="text-blue-400 font-bold">P:${alim.prot}g</span>
+                            <span class="text-amber-400 font-bold">C:${alim.carb}g</span>
+                            <span class="text-rose-400 font-bold">G:${alim.gord}g</span>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function abrirModalPersonalizado() {
+            document.getElementById('modalPersonalizado').classList.remove('hidden');
+        }
+        function fecharModalPersonalizado() {
+            document.getElementById('modalPersonalizado').classList.add('hidden');
+        }
+
+        function salvarAlimentoPersonalizado() {
+            const nome = (document.getElementById('novoNome').value || '').trim();
+            const porcao = num(document.getElementById('novaPorcao').value, 100);
+            const cal = num(document.getElementById('novaCal').value, 0);
+            const prot = num(document.getElementById('novoProt').value, 0);
+            const carb = num(document.getElementById('novoCarb').value, 0);
+            const gord = num(document.getElementById('novoGord').value, 0);
+
+            if (!nome) { alert('Digite o nome do alimento.'); return; }
+
+            const novo = {
+                id: 'pers_' + Date.now(),
+                nome: nome,
+                cat: 'Personalizados',
+                porcao: porcao,
+                medida: `Porção cadastrada (${porcao}g)`,
+                cal: cal, prot: prot, carb: carb, gord: gord
+            };
+
+            alimentosPersonalizados.push(novo);
+            alimentosCompletos = [...alimentosBase, ...alimentosPersonalizados];
+            salvarStorage('nutri_personalizados_v2', alimentosPersonalizados);
+
+            renderizarTabelaAlimentos();
+            fecharModalPersonalizado();
+            document.getElementById('novoNome').value = '';
+        }
+
+        function exportData() {
+            const backup = { perfil, historicoDias, alimentosPersonalizados };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `nutricalc_backup_${dataHojeStr}.json`;
+            a.click();
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const d = JSON.parse(e.target.result);
+                    if (d.perfil) { perfil = d.perfil; salvarStorage('nutri_perfil_v2', perfil); }
+                    if (d.historicoDias) { historicoDias = d.historicoDias; salvarStorage('nutri_historico_v2', historicoDias); }
+                    if (d.alimentosPersonalizados) {
+                        alimentosPersonalizados = d.alimentosPersonalizados;
+                        salvarStorage('nutri_personalizados_v2', alimentosPersonalizados);
+                        alimentosCompletos = [...alimentosBase, ...alimentosPersonalizados];
+                    }
+                    carregarPerfilNaTela();
+                    calcularTudo();
+                    renderizarRefeicoes();
+                    renderizarTabelaAlimentos();
+                    alert('Backup restaurado com sucesso!');
+                } catch (err) { alert('Arquivo inválido.'); }
+            };
+            reader.readAsText(file);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            carregarPerfilNaTela();
+            calcularTudo();
+            renderizarRefeicoes();
+            renderizarTabelaAlimentos();
+        });
+    </script>
+</body>
+</html>
